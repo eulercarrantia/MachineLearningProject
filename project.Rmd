@@ -1,0 +1,116 @@
+---
+title: "Machine Learning Project"
+output: pdf_document
+---
+
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+#Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+#Getting Data
+
+Firstly, I have loaded the two data sets: training set and testing data, wherere I am going to predict on.
+
+```{r}
+pml.training_ini <- read.csv("~/Data Science - Coursera/8. Machine Learning/Week 4/pml-training.csv",na.strings=c("NA","#DIV/0!", ""))
+pml.testing_ini <- read.csv("~/Data Science - Coursera/8. Machine Learning/Week 4/pml-testing.csv",na.strings=c("NA","#DIV/0!", ""))
+```
+
+#Cleaning Data
+
+Then, I have dropped those columns completed only for missing values, and the first columns of the set which are not 
+useful to predict the variable classe.
+
+```{r}
+pml.training <- -pml.training_ini[,colSums(is.na(pml.training_ini))==0]
+pml.training <- pml.training[,-c(1:7)]
+pml.training$classe <- pml.training_ini$classe
+
+pml.testing <- -pml.testing_ini[,colSums(is.na(pml.testing_ini))==0]
+pml.testing <- pml.testing[,-c(1:7)]
+```
+
+#Splitting data
+
+After cleaning the data, I have splitted the training set into two sets, one of them will (the 75% of the data) be to build the model and the other (the 25% of the data) to validate it. 
+
+```{r}
+library(caret)
+partition <-  createDataPartition(pml.training$classe, p = 0.75,   list = FALSE) 
+train_set <- pml.training[partition,]
+test_set <- pml.training[-partition,]
+```
+
+So, the dimensions of the training and testing sets are the following ones:
+
+```{r}
+dim(train_set)
+```
+```{r}
+dim(test_set)
+```
+
+Let's see how the predicted variable is distributed in both sets:
+
+```{r}
+prop.table(table(train_set$classe))
+```
+
+```{r}
+prop.table(table(test_set$classe))
+```
+
+#Building a model
+
+Let's build a firs model through decision trees and then, I will try with random forest, as it is an esemble method, which
+is based on the idea of combining multiple weaker learners, a stronger learner is created. After building each model, 
+I will use the 25% of the data to know how well the model predicts, comparing the data of the variable classe with the 
+data predicted with each model. 
+
+##Decision Trees
+
+```{r}
+library(C50)
+c50_model <- C5.0(train_set[,-53],train_set$classe)
+c50_predict<- predict(c50_model,test_set)
+confusionMatrix(c50_predict,test_set$classe)
+```
+
+##Random Forest
+
+```{r}
+library(randomForest)
+forest_model <- randomForest(classe~., data=train_set)
+forest_predict <- predict(forest_model,test_set)
+confusionMatrix(forest_predict,test_set$classe)
+```
+
+
+If we compare the results of both methods, we can see that the accuracy got with decision trees is 0.9629, while with 
+ransom forests is 0.9961. Then, the model built with random forest is better.
+
+#Predicting on Testing Data
+
+Once I have build an accurated model, I will make predict the classe of the data of the testing data:
+
+```{r}
+ predict(forest_model,pml.testing)
+```
+
+
+
+
+
+
